@@ -181,7 +181,6 @@ OUTPUT_GEOJSON   = "my_data_final.geojson"
 xlsx_to_geojson_properties(
     INPUT_XLSX,
     METADATA_GEOJSON,
-    skip_columns=["Email", "Start time"]
 )
 
 # Step 2: Generate a geometry template CSV from the same spreadsheet
