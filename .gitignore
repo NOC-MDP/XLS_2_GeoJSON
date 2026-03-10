@@ -1,0 +1,6 @@
+__pycache__
+.idea
+*.xlsx
+*.xls
+*.egg-info
+example_output

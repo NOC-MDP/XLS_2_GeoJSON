@@ -1,0 +1,12 @@
+[project]
+name = "xls_2_geojson"
+version = "0.1.0"
+authors = [
+  { name="thopri", email="thopri@noc.ac.uk" },
+]
+description = ""
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [ "pandas",
+                  "openpyxl",
+]
