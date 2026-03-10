@@ -4,13 +4,13 @@
 
 A lightweight Python pipeline for converting data held in an Excel spreadsheet into a fully-formed GeoJSON file, ready to be loaded into Tableau or any other GIS-aware tool.
 
-The workflow is split into three focused scripts:
+The workflow is split into three functions:
 
-| Script | Purpose |
-|---|---|
-| `xlsx_to_geojson_properties.py` | Reads an XLSX file and converts each row into a GeoJSON feature with a `properties` block. Geometry is left as `null` at this stage. |
-| `xlsx_to_geometry_template.py` | Reads the same XLSX file, extracts every ID, and writes a CSV template with blank geometry columns ready to be filled in. |
-| `merge_geometry_into_geojson.py` | Reads the completed geometry template CSV, matches each row to a feature in the metadata GeoJSON by ID, builds the correct geometry type, and writes a final combined GeoJSON. |
+| function | Purpose |
+|-------------------------------|---|
+| `xlsx_to_geojson_properties`  | Reads an XLSX file and converts each row into a GeoJSON feature with a `properties` block. Geometry is left as `null` at this stage. |
+| `xlsx_to_geometry_template`   | Reads the same XLSX file, extracts every ID, and writes a CSV template with blank geometry columns ready to be filled in. |
+| `merge_geometry_into_geojson` | Reads the completed geometry template CSV, matches each row to a feature in the metadata GeoJSON by ID, builds the correct geometry type, and writes a final combined GeoJSON. |
 
 ---
 
