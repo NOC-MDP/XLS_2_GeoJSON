@@ -1,0 +1,65 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "Id": "DEP001",
+        "Start time": "2024-06-01 08:00:00",
+        "Completion time": "2024-06-15 17:00:00",
+        "Email": "alice.johnson@oceanlab.ac.uk",
+        "Name": "Alice Johnson",
+        "Project Name": "North Sea Baseline Survey",
+        "Main Contact for this deployment submission": "Dr. Alice Johnson",
+        "What are the deployments that you are submitting?": "Glider transect across North Sea shelf edge",
+        "Deployment Domain": "Marine",
+        "Platform type: e.g. glider, drifter, drone etc": "Glider",
+        "Where and when is this deployment occuring?": "North Sea, 54°N–57°N, June 2024",
+        "What observations is the deployment trying to capture/measure": "Temperature, salinity, dissolved oxygen, chlorophyll fluorescence",
+        "Please provide details of any sampling strategy (Swath, points, constellation, lawnmower etc)": "Lawnmower pattern at 200m depth intervals along three parallel transects",
+        "What notable limitations does your platform have?": "Limited to depths below 1000m; communication windows restricted to surface intervals every 6 hours"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "Id": "DEP002",
+        "Start time": "2024-07-10 09:30:00",
+        "Completion time": "2024-07-25 16:00:00",
+        "Email": "ben.carter@metoffice.gov.uk",
+        "Name": "Ben Carter",
+        "Project Name": "Atlantic Drift Monitoring Programme",
+        "Main Contact for this deployment submission": "Ben Carter",
+        "What are the deployments that you are submitting?": "Array of surface drifters tracking Gulf Stream extension",
+        "Deployment Domain": "Marine",
+        "Platform type: e.g. glider, drifter, drone etc": "Drifter",
+        "Where and when is this deployment occuring?": "Northeast Atlantic, 45°N–50°N, July 2024",
+        "What observations is the deployment trying to capture/measure": "Sea surface temperature, surface currents, atmospheric pressure",
+        "Please provide details of any sampling strategy (Swath, points, constellation, lawnmower etc)": "Constellation of 12 drifters deployed at 50km spacing along a zonal line",
+        "What notable limitations does your platform have?": "No active propulsion; track entirely dependent on ambient currents. Battery life approximately 18 months."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "Id": "DEP003",
+        "Start time": "2024-08-05 07:00:00",
+        "Completion time": "2024-08-07 19:00:00",
+        "Email": "priya.nair@loc.ac.uk",
+        "Name": "Priya Nair",
+        "Project Name": "Coastal Habitat Mapping Initiative",
+        "Main Contact for this deployment submission": "Dr. Priya Nair",
+        "What are the deployments that you are submitting?": "UAV survey of intertidal seagrass meadows",
+        "Deployment Domain": "Coastal",
+        "Platform type: e.g. glider, drifter, drone etc": "Drone",
+        "Where and when is this deployment occuring?": "Solent coastline, Hampshire, UK, August 2024",
+        "What observations is the deployment trying to capture/measure": "Seagrass extent and density, sediment type, surface water turbidity",
+        "Please provide details of any sampling strategy (Swath, points, constellation, lawnmower etc)": "Swath survey at 40m altitude with 70% overlap; ground truth points collected at 500m intervals",
+        "What notable limitations does your platform have?": "Maximum flight time of 25 minutes per battery; restricted to wind speeds below 15 knots; requires CAA authorisation for flights over 400ft"
+      }
+    }
+  ]
+}

@@ -8,7 +8,7 @@ are merged together into one geojson file that contains both the metadata and ge
 from xls_2_geojson import xlsx_to_geojson_properties, xlsx_to_geometry_template, merge_geometry_into_geojson
 
 # define input file
-input_file = "Forecasting Tipping Point_ Observation deployments data capture.xlsx"
+input_file = "dummy_deployments.xlsx"
 # convert metadata to geojson file (empty geometry)
 xlsx_to_geojson_properties(input_file, "example_output/metadata.geojson")
 # generate geometry template csv file (need to manually add features using excel)

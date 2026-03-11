@@ -3,4 +3,5 @@ __pycache__
 *.xlsx
 *.xls
 *.egg-info
-example_output
+!dummy_deployments.xlsx
+.DS_Store
