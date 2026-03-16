@@ -54,7 +54,7 @@ The output is a valid GeoJSON `FeatureCollection`. Each feature has `"geometry":
 
 Extracts every ID from your spreadsheet and writes a CSV template with blank columns for you to fill in:
 The script will also populate the template with a label field to help with identifying the different entries by default
-this is 'Project name' but this can be overridden if required.
+this is 'Project name' but this can be overridden if required. The populated columns are shown below:
 
 ```
 id, geotype, colour, coordinates, date
