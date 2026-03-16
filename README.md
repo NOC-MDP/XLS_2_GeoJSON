@@ -57,7 +57,7 @@ The script will also populate the template with a label field to help with ident
 this is 'Project name' but this can be overridden if required.
 
 ```
-id, geotype, colour, coordinates
+id, geotype, colour, coordinates, date
 ```
 
 ```python
@@ -105,6 +105,19 @@ Fill in the geometry template CSV with the following values:
 **`colour`** — a category label used for styling in Tableau (e.g. `red`, `blue`, `green`). Leave blank if not needed.
 
 ---
+
+### Adding dates
+
+The geometry csv also has a date field, this enables filtering of the spatial data based on the date. An compatible datetime
+string should be used, e.g. 
+
+```
+"2025-03-23"
+```
+This field can then be used by tableau to filter the spatial geometry.
+
+---
+
 
 ### Merging geometry with metadata
 

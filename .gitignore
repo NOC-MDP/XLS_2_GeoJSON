@@ -5,3 +5,5 @@ __pycache__
 *.egg-info
 !dummy_deployments.xlsx
 .DS_Store
+forecast_tipping_point.py
+deployments

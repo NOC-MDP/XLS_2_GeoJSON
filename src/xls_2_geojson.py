@@ -123,7 +123,7 @@ def xlsx_to_geometry_template(
     if output_path is None:
         output_path = str(Path(input_path).with_stem(Path(input_path).stem + "_geometry_template").with_suffix(".csv"))
 
-    out_df = pd.DataFrame({"id": ids, "label":labels,"geotype": "", "colour": "", "coordinates": "[]"})
+    out_df = pd.DataFrame({"id": ids, "label":labels,"geotype": "", "colour": "", "coordinates": "[]","date":""})
     out_df.to_csv(output_path, index=False)
 
     print(f"Written {len(ids)} rows → {output_path}")
