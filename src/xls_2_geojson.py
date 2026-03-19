@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 import ast
 import re
+import xml.etree.ElementTree as ET
 
 """
 Convert an XLSX spreadsheet to GeoJSON-compatible metadata.
@@ -90,10 +91,10 @@ def xlsx_to_geojson_properties(
     return geojson
 
 """
-Read an XLSX file, extract every ID field, and write a CSV template
-with blank geometry columns ready to be filled in.
+Read an XLSX file, extract every ID field, and write a CSV styling template
+with blank colour and date columns ready to be filled in.
 """
-def xlsx_to_geometry_template(
+def xlsx_to_styling_template(
     input_path: str,
     output_path: str = None,
     id_column: str = "id",
@@ -123,147 +124,229 @@ def xlsx_to_geometry_template(
     if output_path is None:
         output_path = str(Path(input_path).with_stem(Path(input_path).stem + "_geometry_template").with_suffix(".csv"))
 
-    out_df = pd.DataFrame({"id": ids, "label":labels,"geotype": "", "colour": "", "coordinates": "[]","date":""})
+    out_df = pd.DataFrame({"id": ids, "label":labels, "colour": "","date":""})
     out_df.to_csv(output_path, index=False)
 
     print(f"Written {len(ids)} rows → {output_path}")
 
-"""
-Read a geometry template CSV and a metadata GeoJSON, match by ID,
-build the appropriate GeoJSON geometry, and write a combined output GeoJSON.
-"""
-def parse_coordinates(coord_str: str) -> list:
+
+# ---------------------------------------------------------------------------
+# KML parsing
+# ---------------------------------------------------------------------------
+
+KML_NS = "http://www.opengis.net/kml/2.2"
+KML_NS_ALT = "http://earth.google.com/kml/2.1"  # older Google Earth exports
+
+
+def _ns(tag: str, ns: str) -> str:
+    return f"{{{ns}}}{tag}"
+
+
+def _parse_coord_string(coord_str: str) -> list:
     """
-    Parse a coordinate string into a list of [lon, lat] pairs.
-    Accepts:
-      "[lon,lat]"                        → single point
-      "[[lon1,lat1],[lon2,lat2],...]"    → multiple points
-    Always returns a list of [lon, lat] pairs.
+    Parse a KML coordinate string into a list of [lon, lat] pairs.
+    KML format: 'lon,lat,alt lon,lat,alt ...' (alt is optional).
     """
-    parsed = ast.literal_eval(coord_str.strip())
-
-    # Single point: [lon, lat] — wrap in a list
-    if isinstance(parsed[0], (int, float)):
-        return [parsed]
-
-    return [list(p) for p in parsed]
-
-
-def is_closed(coords: list) -> bool:
-    """Return True if the first and last coordinate pairs are identical."""
-    return coords[0] == coords[-1]
+    coords = []
+    for token in coord_str.strip().split():
+        parts = token.split(",")
+        if len(parts) >= 2:
+            coords.append([float(parts[0]), float(parts[1])])  # drop Z
+    return coords
 
 
-def build_geometry(geotype: str, coord_str: str) -> dict | None:
+def _find(element, tag: str, ns: str):
+    """Find a child element trying both KML namespace variants."""
+    result = element.find(_ns(tag, ns))
+    if result is None:
+        result = element.find(_ns(tag, KML_NS_ALT))
+    if result is None:
+        result = element.find(tag)  # no namespace fallback
+    return result
+
+
+def _findall(element, tag: str, ns: str):
+    results = element.findall(_ns(tag, ns))
+    if not results:
+        results = element.findall(_ns(tag, KML_NS_ALT))
+    if not results:
+        results = element.findall(tag)
+    return results
+
+
+def _parse_geometry(placemark, ns: str) -> dict | None:
+    """Extract a GeoJSON-style geometry dict from a KML Placemark element."""
+
+    # Point
+    point = _find(placemark, "Point", ns)
+    if point is not None:
+        coords_el = _find(point, "coordinates", ns)
+        if coords_el is not None:
+            coords = _parse_coord_string(coords_el.text)
+            if coords:
+                return {"type": "Point", "coordinates": coords[0]}
+
+    # LineString
+    linestring = _find(placemark, "LineString", ns)
+    if linestring is not None:
+        coords_el = _find(linestring, "coordinates", ns)
+        if coords_el is not None:
+            return {"type": "LineString", "coordinates": _parse_coord_string(coords_el.text)}
+
+    # Polygon
+    polygon = _find(placemark, "Polygon", ns)
+    if polygon is not None:
+        rings = []
+        outer = _find(polygon, "outerBoundaryIs", ns)
+        if outer is not None:
+            lr = _find(outer, "LinearRing", ns)
+            if lr is not None:
+                coords_el = _find(lr, "coordinates", ns)
+                if coords_el is not None:
+                    rings.append(_parse_coord_string(coords_el.text))
+        for inner in _findall(polygon, "innerBoundaryIs", ns):
+            lr = _find(inner, "LinearRing", ns)
+            if lr is not None:
+                coords_el = _find(lr, "coordinates", ns)
+                if coords_el is not None:
+                    rings.append(_parse_coord_string(coords_el.text))
+        if rings:
+            return {"type": "Polygon", "coordinates": rings}
+
+    return None
+
+
+def _iter_placemarks(element, ns: str):
+    """Recursively yield all Placemark elements (handles nested Folders)."""
+    for child in element:
+        tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
+        if tag == "Placemark":
+            yield child
+        elif tag in ("Folder", "Document"):
+            yield from _iter_placemarks(child, ns)
+
+
+def parse_kml(path: str) -> dict:
     """
-    Build a GeoJSON geometry dict from a geotype string and coordinate string.
-    Falls back gracefully if coordinates are missing or unparseable.
+    Parse a KML file and return a dict of normalised name → GeoJSON geometry.
     """
-    if not isinstance(coord_str, str) or not coord_str.strip():
-        return None
+    tree = ET.parse(path)
+    root = tree.getroot()
 
-    try:
-        coords = parse_coordinates(coord_str)
-    except Exception as e:
-        print(f"  Warning: could not parse coordinates '{coord_str}': {e}")
-        return None
+    # Detect namespace from root tag
+    ns = KML_NS
+    if root.tag.startswith(f"{{{KML_NS_ALT}}}"):
+        ns = KML_NS_ALT
+    elif not root.tag.startswith("{"):
+        ns = ""  # no namespace
 
-    geotype = geotype.strip().lower() if isinstance(geotype, str) else ""
-
-    if geotype == "point":
-        return {
-            "type": "Point",
-            "coordinates": coords[0]
-        }
-
-    elif geotype == "polyline":
-        return {
-            "type": "LineString",
-            "coordinates": coords
-        }
-
-    elif geotype == "polygon":
-        # Ensure ring is closed
-        ring = coords if is_closed(coords) else coords + [coords[0]]
-        return {
-            "type": "Polygon",
-            "coordinates": [ring]   # GeoJSON polygons are arrays of rings
-        }
-
-    else:
-        print(f"  Warning: unknown geotype '{geotype}', skipping geometry.")
-        return None
-
-"""
-merge a geometry cvs and metadata geojson file together, matching entries using an id field
-"""
-def merge_geometry_into_geojson(
-    geometry_csv: str,
-    metadata_geojson: str,
-    output_path: str = None,
-    id_column: str = "id",
-) -> dict:
-
-    # Load inputs
-    geometry_df = pd.read_csv(geometry_csv)
-    geometry_df.columns = [col.strip() for col in geometry_df.columns]
-
-    with open(metadata_geojson, "r", encoding="utf-8") as f:
-        geojson = json.load(f)
-
-    # Build a lookup from id → LIST of geometry rows (one id may have many geometries)
-    geometry_df[id_column] = geometry_df[id_column].astype(str)
-    geometry_lookup = (
-        geometry_df.groupby(id_column, sort=False)
-        .apply(lambda g: g.to_dict(orient="records"))
-        .to_dict()
-    )
-
-    matched = 0
-    unmatched = 0
-    new_features = []
-
-    for feature in geojson["features"]:
-        if id_column == "id" or id_column =="Id":
-            id_column = "Id"
-        else:
-            raise NotImplementedError("only id columns called 'Id' are currently supported")
-        feature_id = str(feature.get("properties", {}).get(id_column, ""))
-        rows = geometry_lookup.get(feature_id)
-
-        if not rows:
-            # Keep the feature as-is (geometry stays None)
-            new_features.append(feature)
-            unmatched += 1
+    lookup = {}
+    for placemark in _iter_placemarks(root, ns):
+        name_el = _find(placemark, "name", ns)
+        name = name_el.text.strip() if name_el is not None and name_el.text else None
+        if not name:
             continue
+        geometry = _parse_geometry(placemark, ns)
+        if geometry:
+            lookup[name.strip().lower()] = (name, geometry)
 
-        for row in rows:
-            geotype = row.get("geotype", "")
-            coord_str = row.get("coordinates", "")
-            geometry = build_geometry(geotype, coord_str)
+    return lookup  # { normalised_name: (original_name, geometry) }
 
-            # Deep-copy properties so each sub-feature is independent
-            props = dict(feature.get("properties") or {})
 
-            colour = row.get("colour", "")
-            if isinstance(colour, str) and colour.strip():
-                props["colour"] = colour
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-            new_features.append({
-                "type": "Feature",
-                "geometry": geometry,
-                "properties": props,
-            })
-            matched += 1
+def normalise(value) -> str:
+    return str(value).strip().lower() if value is not None else ""
 
-    geojson["features"] = new_features
+
+def load_geojson(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# ---------------------------------------------------------------------------
+# Main merge function
+# ---------------------------------------------------------------------------
+
+def merge_all(
+        metadata_geojson_path: str,
+        kml_path: str,
+        styling_csv_path: str,
+        output_path: str = None,
+        metadata_name_field: str = "Project Name",
+        styling_name_field: str = "label",
+        styling_id_field: str = "id",
+        styling_colour_field: str = "colour",
+        styling_date_field: str = "date",
+) -> dict:
+    metadata = load_geojson(metadata_geojson_path)
+    geometry_lookup = parse_kml(kml_path)
+
+    styling_df = pd.read_csv(styling_csv_path)
+    styling_df.columns = [col.strip() for col in styling_df.columns]
+
+    styling_lookup = {}
+    for _, row in styling_df.iterrows():
+        name = normalise(row.get(styling_name_field, ""))
+        if name:
+            styling_lookup[name] = row
+
+    geom_matched = 0
+    geom_unmatched_names = []
+    style_matched = 0
+    style_unmatched_names = []
+
+    for feature in metadata.get("features", []):
+        props = feature.get("properties") or {}
+        name = normalise(props.get(metadata_name_field))
+
+        # --- Merge KML geometry ---
+        geom_entry = geometry_lookup.get(name)
+        if geom_entry:
+            feature["geometry"] = geom_entry[1]
+            geom_matched += 1
+        else:
+            geom_unmatched_names.append(props.get(metadata_name_field, "<no name>"))
+
+        # --- Merge styling ---
+        style_row = styling_lookup.get(name)
+        if style_row is not None:
+            colour = style_row.get(styling_colour_field)
+            date = style_row.get(styling_date_field)
+            style_id = style_row.get(styling_id_field)
+
+            if pd.notna(colour) and str(colour).strip():
+                props["colour"] = str(colour).strip()
+            if pd.notna(date) and str(date).strip():
+                props["date"] = str(date).strip()
+            if pd.notna(style_id) and str(style_id).strip():
+                props["style_id"] = str(style_id).strip()
+
+            feature["properties"] = props
+            style_matched += 1
+        else:
+            style_unmatched_names.append(props.get(metadata_name_field, "<no name>"))
 
     if output_path is None:
-        stem = Path(metadata_geojson).stem
-        output_path = str(Path(metadata_geojson).with_stem(stem + "_with_geometry"))
+        stem = Path(metadata_geojson_path).stem
+        output_path = str(Path(metadata_geojson_path).with_stem(stem + "_merged"))
 
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(geojson, f, indent=2, ensure_ascii=False)
+        json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-    print(f"Done: {matched} features created, {unmatched} unmatched → {output_path}")
-    return geojson
+    # Summary
+    print(f"Geometry : {geom_matched} matched, {len(geom_unmatched_names)} unmatched")
+    if geom_unmatched_names:
+        print(f"  Unmatched metadata names : {geom_unmatched_names}")
+        print(f"  Available KML names      : {[v[0] for v in geometry_lookup.values()]}")
+
+    print(f"Styling  : {style_matched} matched, {len(style_unmatched_names)} unmatched")
+    if style_unmatched_names:
+        print(f"  Unmatched styling names  : {style_unmatched_names}")
+        print(f"  Available styling names  : {list(styling_lookup.keys())}")
+
+    print(f"Output   : {output_path}")
+
+    return metadata

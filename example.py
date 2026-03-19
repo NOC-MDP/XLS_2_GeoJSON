@@ -11,9 +11,9 @@ from xls_2_geojson import xlsx_to_geojson_properties, xlsx_to_geometry_template,
 input_file = "dummy_deployments.xlsx"
 # convert metadata to geojson file (empty geometry)
 xlsx_to_geojson_properties(input_file, "example_output/metadata.geojson")
-# generate geometry template csv file (need to manually add features using excel and save as geometry.csv)
+# generate geometry template csv file (need to manually add features using excel and save as styling.csv)
 xlsx_to_geometry_template(input_file, "example_output/geometry_template.csv")
 # merge completed geometry and metadata geojson together
-merge_geometry_into_geojson(geometry_csv="example_output/geometry.csv", metadata_geojson="example_output/metadata.geojson")
+merge_geometry_into_geojson(geometry_csv="example_output/styling.csv", metadata_geojson="example_output/metadata.geojson")
 
 print("the end")
