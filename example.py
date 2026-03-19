@@ -5,15 +5,18 @@ is created from the metadata, with rows being populated from id and project name
 points, polyline and polygons can be specified. See Readme.md for more information. Finally, the geometry csv and metadata geojson
 are merged together into one geojson file that contains both the metadata and geometries. This can be imported into Tableau.
 """
-from xls_2_geojson import xlsx_to_geojson_properties, xlsx_to_geometry_template, merge_geometry_into_geojson
+from xls_2_geojson import xlsx_to_geojson_properties, xlsx_to_styling_template, merge_all
 
 # define input file
 input_file = "dummy_deployments.xlsx"
 # convert metadata to geojson file (empty geometry)
 xlsx_to_geojson_properties(input_file, "example_output/metadata.geojson")
 # generate geometry template csv file (need to manually add features using excel and save as styling.csv)
-xlsx_to_geometry_template(input_file, "example_output/geometry_template.csv")
+xlsx_to_styling_template(input_file, "example_output/styling_template.csv")
 # merge completed geometry and metadata geojson together
-merge_geometry_into_geojson(geometry_csv="example_output/styling.csv", metadata_geojson="example_output/metadata.geojson")
+merge_all(metadata_geojson_path="example_output/metadata.geojson",
+          kml_path="example_output/dummy.kml",
+          styling_csv_path="example_output/styling.csv",
+          output_path="example_output/out.geojson")
 
 print("the end")
