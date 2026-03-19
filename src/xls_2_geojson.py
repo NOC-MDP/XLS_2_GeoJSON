@@ -124,7 +124,7 @@ def xlsx_to_styling_template(
     if output_path is None:
         output_path = str(Path(input_path).with_stem(Path(input_path).stem + "_geometry_template").with_suffix(".csv"))
 
-    out_df = pd.DataFrame({"id": ids, "label":labels, "colour": "","date":""})
+    out_df = pd.DataFrame({"id": ids, "label":labels, "colour": "","start date":"","end date":""})
     out_df.to_csv(output_path, index=False)
 
     print(f"Written {len(ids)} rows → {output_path}")
@@ -279,7 +279,8 @@ def merge_all(
         styling_name_field: str = "label",
         styling_id_field: str = "id",
         styling_colour_field: str = "colour",
-        styling_date_field: str = "date",
+        styling_start_date_field: str = "start date",
+        styling_end_date_field: str = "end date",
 ) -> dict:
     metadata = load_geojson(metadata_geojson_path)
     geometry_lookup = parse_kml(kml_path)
@@ -314,13 +315,16 @@ def merge_all(
         style_row = styling_lookup.get(name)
         if style_row is not None:
             colour = style_row.get(styling_colour_field)
-            date = style_row.get(styling_date_field)
+            start_date = style_row.get(styling_start_date_field)
+            end_date = style_row.get(styling_end_date_field)
             style_id = style_row.get(styling_id_field)
 
             if pd.notna(colour) and str(colour).strip():
                 props["colour"] = str(colour).strip()
-            if pd.notna(date) and str(date).strip():
-                props["date"] = str(date).strip()
+            if pd.notna(start_date) and str(start_date).strip():
+                props["start date"] = str(start_date).strip()
+            if pd.notna(end_date) and str(end_date).strip():
+                props["end date"] = str(end_date).strip()
             if pd.notna(style_id) and str(style_id).strip():
                 props["style_id"] = str(style_id).strip()
 
