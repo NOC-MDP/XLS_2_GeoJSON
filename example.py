@@ -15,7 +15,7 @@ xlsx_to_geojson_properties(input_file, "example_output/metadata.geojson")
 xlsx_to_styling_template(input_file, "example_output/styling_template.csv")
 # merge completed geometry and metadata geojson together
 merge_all(metadata_geojson_path="example_output/metadata.geojson",
-          kml_path="example_output/dummy.kml",
+          kml_path="example_output/Dummy.kml",
           styling_csv_path="example_output/styling.csv",
           output_path="example_output/out.geojson")
 

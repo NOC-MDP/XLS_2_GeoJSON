@@ -176,7 +176,6 @@ def _findall(element, tag: str, ns: str):
 
 def _parse_geometry(placemark, ns: str) -> dict | None:
     """Extract a GeoJSON-style geometry dict from a KML Placemark element."""
-
     # Point
     point = _find(placemark, "Point", ns)
     if point is not None:
@@ -269,7 +268,12 @@ def load_geojson(path: str) -> dict:
 # ---------------------------------------------------------------------------
 # Main merge function
 # ---------------------------------------------------------------------------
-
+"""
+Merges an metadata geojson (geometry is null), an kml file (with spatial features such as points, poly lines and polygons
+specified) NOTE: the layer names in kml must match the Name in the meta geojson and a styling csv. The styling CSV sets the
+desired colour and start and end dates of the spatial features and these are added as properties in the geojson and can be
+used within table for styling and filtering of the data.
+"""
 def merge_all(
         metadata_geojson_path: str,
         kml_path: str,

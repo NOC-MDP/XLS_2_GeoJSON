@@ -57,7 +57,7 @@ The script will also populate the template with a label field to help with ident
 this is 'Project name' but this can be overridden if required. The populated columns are shown below:
 
 ```
-id, label, colour, date
+id, label, colour, start date, end date
 ```
 
 ```python
@@ -92,7 +92,9 @@ date. The date string needs to be compatible with tableau, such as standard exce
 
 **`colour`** — a category label used for styling in Tableau (e.g. `red`, `blue`, `green`). Leave blank if not needed.
 
-**`date`** — used for filtering data in Tableau (e.g. `01/01/2027`). Leave blank if not needed
+**`start date`** — used for filtering data in Tableau (e.g. `01/01/2027`). Leave blank if not needed
+
+**`end date`** — used for filtering data in Tableau (e.g. `01/01/2028`). Leave blank if not needed
 
 ---
 
@@ -136,13 +138,6 @@ If you populated the `colour` field in your template with category labels (e.g. 
 1. Drag the **colour** field onto the **Color** shelf.
 2. Click **Color → Edit Colors** to assign a specific color to each category value manually.
 
-**Colour by measure**
-
-To colour features by a numeric property (e.g. a score or count):
-
-1. Drag the numeric field onto the **Color** shelf.
-2. Tableau will apply a continuous color gradient automatically. Use **Edit Colors** to change the palette or set custom min/max values.
-
 **Tooltips**
 
 All `properties` fields are available as tooltip fields. Go to **Tooltip** on the Marks card to customise which fields appear and how they are labelled.
@@ -158,14 +153,15 @@ Any property field can be dragged onto the **Filters** shelf to allow interactiv
 A minimal end-to-end example pulling all three steps together:
 
 ```python
-from xls_2_geojson import xlsx_to_geojson_properties
+from xls_2_geojson import xlsx_to_geojson_properties, xlsx_to_styling_template
 from xls_2_geojson import xlsx_to_geometry_template
 from xls_2_geojson import merge_geometry_into_geojson
 
-INPUT_XLSX       = "my_data.xlsx"
+INPUT_XLSX = "my_data.xlsx"
 METADATA_GEOJSON = "my_data.geojson"
-TEMPLATE_CSV     = "my_data_geometry_template.csv"
-OUTPUT_GEOJSON   = "my_data_final.geojson"
+STYLING_CSV = "my_data_styling_template.csv"
+KML_FILE = "my_spatial.kml"
+OUTPUT_GEOJSON = "my_data_final.geojson"
 
 # Step 1: Convert spreadsheet rows to GeoJSON metadata
 xlsx_to_geojson_properties(
@@ -175,24 +171,28 @@ xlsx_to_geojson_properties(
 
 # Step 2: Generate a geometry template CSV from the same spreadsheet
 # NOTE only id columns called 'Id' in spreadsheet are cuurently supported
-xlsx_to_geometry_template(
+xlsx_to_styling_template(
     INPUT_XLSX,
-    TEMPLATE_CSV,
+    STYLING_CSV,
 
 )
 
 # --- Fill in the template CSV manually at this point ---
+# --- Create KML file in google earth pro with layer names matching project names ---
 
-# Step 3: Merge the completed template back into the GeoJSON
-# NOTE only id columns called 'Id' in spreadsheet are cuurently supported
-merge_geometry_into_geojson(
-    TEMPLATE_CSV,
+# Step 3: Merge the completed template and KML back into the GeoJSON
+merge_all(
     METADATA_GEOJSON,
+    KML_FILE,
+    STYLING_CSV,
     OUTPUT_GEOJSON,
 )
 ```
----
-## Issues
+There is also an example python script in the repository that uses dummy input data (and a prefilled out styling 
+and kml file) to demostrate how the module is expected to be used.
 
-id column is only supported as 'Id' which is the default field in Microsoft forms. This is due a mismatch in the code where 
-it needs to be 'id' at some points and 'Id' at others. So currently the default 'id' string should be used and not overridden
+```shell
+$ python example.py
+```
+
+---
