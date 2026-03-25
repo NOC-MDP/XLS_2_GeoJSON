@@ -247,7 +247,10 @@ def parse_kml(path: str) -> dict:
             continue
         geometry = _parse_geometry(placemark, ns)
         if geometry:
-            lookup[name.strip().lower()] = (name, geometry)
+            key = name.strip().lower()
+            if key not in lookup:
+                lookup[key] = (name, [])        # initialise with empty list
+            lookup[key][1].append(geometry)     # always append, never overwrite
 
     return lookup  # { normalised_name: (original_name, geometry) }
 
@@ -264,7 +267,40 @@ def load_geojson(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
+def geometries_to_combined(geom_list: list) -> dict:
+    """
+    Collapse a list of GeoJSON geometry dicts into the simplest valid geometry.
+    - Single item  → returned as-is
+    - All Points   → MultiPoint
+    - All Lines    → MultiLineString
+    - All Polygons → MultiPolygon
+    - Mixed        → GeometryCollection
+    """
+    if len(geom_list) == 1:
+        return geom_list[0]
 
+    types = {g["type"] for g in geom_list}
+
+    if types == {"Point"}:
+        return {
+            "type": "MultiPoint",
+            "coordinates": [g["coordinates"] for g in geom_list],
+        }
+    if types == {"LineString"}:
+        return {
+            "type": "MultiLineString",
+            "coordinates": [g["coordinates"] for g in geom_list],
+        }
+    if types == {"Polygon"}:
+        return {
+            "type": "MultiPolygon",
+            "coordinates": [g["coordinates"] for g in geom_list],
+        }
+    # Mixed types fall back to GeometryCollection
+    return {
+        "type": "GeometryCollection",
+        "geometries": geom_list,
+    }
 # ---------------------------------------------------------------------------
 # Main merge function
 # ---------------------------------------------------------------------------
@@ -310,7 +346,8 @@ def merge_all(
         # --- Merge KML geometry ---
         geom_entry = geometry_lookup.get(name)
         if geom_entry:
-            feature["geometry"] = geom_entry[1]
+            _, geom_list = geom_entry          # now always a list
+            feature["geometry"] = geometries_to_combined(geom_list)
             geom_matched += 1
         else:
             geom_unmatched_names.append(props.get(metadata_name_field, "<no name>"))
